@@ -4,7 +4,7 @@ import os
 from PIL import Image
 
 # Path to card images
-CARD_FOLDER = "cards/cards"
+CARD_FOLDER = "cards"
 
 values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king', 'ace']
 suits = ['hearts', 'diamonds', 'clubs', 'spades']
