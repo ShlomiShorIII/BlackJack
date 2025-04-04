@@ -98,7 +98,7 @@ with col5:
 if st.session_state.action == "hit":
     st.session_state.user_cards.append(random.choice(deck))
     if calculate_score(st.session_state.user_cards) > 21:
-        st.session_state.result = "You BUST!"
+        st.session_state.result = "You BUST! 😵"
         st.session_state.game_over = True
     st.session_state.action = None
 
@@ -108,11 +108,11 @@ elif st.session_state.action == "stand":
     user_score = calculate_score(st.session_state.user_cards)
     dealer_score = calculate_score(st.session_state.dealer_cards)
     if dealer_score > 21 or user_score > dealer_score:
-        st.session_state.result = "You win!"
+        st.session_state.result = "You win! 🎉"
     elif dealer_score > user_score:
-        st.session_state.result = "Dealer wins!"
+        st.session_state.result = "Dealer wins! 😔"
     else:
-        st.session_state.result = "It's a tie!"
+        st.session_state.result = "It's a tie! 🤝"
     st.session_state.game_over = True
     st.session_state.action = None
 
