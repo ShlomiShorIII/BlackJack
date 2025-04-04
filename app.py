@@ -51,8 +51,10 @@ with col1:
     st.subheader("Your Cards")
     user_score = calculate_score(st.session_state.user_cards)
     st.text(f"Score: {user_score}")
-    for card in st.session_state.user_cards:
-        st.image(load_card_image(card), width=100)
+    user_cols = st.columns(len(st.session_state.user_cards))
+    for i, card in enumerate(st.session_state.user_cards):
+        with user_cols[i]:
+            st.image(load_card_image(card), use_column_width=True)
 
 # Dealer cards
 with col2:
@@ -60,12 +62,19 @@ with col2:
     if st.session_state.game_over:
         dealer_score = calculate_score(st.session_state.dealer_cards)
         st.text(f"Score: {dealer_score}")
-        for card in st.session_state.dealer_cards:
-            st.image(load_card_image(card), width=100)
+        dealer_cols = st.columns(len(st.session_state.dealer_cards))
+        for i, card in enumerate(st.session_state.dealer_cards):
+            with dealer_cols[i]:
+                st.image(load_card_image(card), use_column_width=True)
     else:
         st.text("Score: ?")
-        st.image(load_card_image(st.session_state.dealer_cards[0]), width=100)
-        st.image(load_card_image("back"), width=100)
+        dealer_cols = st.columns(len(st.session_state.dealer_cards))
+        for i, card in enumerate(st.session_state.dealer_cards):
+            with dealer_cols[i]:
+                if i == 0:
+                    st.image(load_card_image(card), use_column_width=True)
+                else:
+                    st.image(load_card_image("back"), use_column_width=True)
 
 # Buttons
 col3, col4, col5 = st.columns(3)
