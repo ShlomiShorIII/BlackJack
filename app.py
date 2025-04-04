@@ -54,7 +54,7 @@ with col1:
     user_cols = st.columns(len(st.session_state.user_cards))
     for i, card in enumerate(st.session_state.user_cards):
         with user_cols[i]:
-            st.image(load_card_image(card), use_column_width=True)
+            st.image(load_card_image(card), width=120)
 
 # Dealer cards
 with col2:
@@ -65,16 +65,16 @@ with col2:
         dealer_cols = st.columns(len(st.session_state.dealer_cards))
         for i, card in enumerate(st.session_state.dealer_cards):
             with dealer_cols[i]:
-                st.image(load_card_image(card), use_column_width=True)
+                st.image(load_card_image(card), width=120)
     else:
         st.text("Score: ?")
         dealer_cols = st.columns(len(st.session_state.dealer_cards))
         for i, card in enumerate(st.session_state.dealer_cards):
             with dealer_cols[i]:
                 if i == 0:
-                    st.image(load_card_image(card), use_column_width=True)
+                    st.image(load_card_image(card), width=120)
                 else:
-                    st.image(load_card_image("back"), use_column_width=True)
+                    st.image(load_card_image("back"), width=120)
 
 # Buttons
 col3, col4, col5 = st.columns(3)
@@ -105,4 +105,4 @@ with col5:
 
 # Result
 if st.session_state.result:
-    st.markdown(f"### {st.session_state.result}")
+    st.markdown(f"### 🏆 {st.session_state.result}")
