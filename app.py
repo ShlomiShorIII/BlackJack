@@ -3,13 +3,14 @@ import random
 import os
 from PIL import Image
 
-# Path to card images
-CARD_FOLDER = "cards"
+# Path to small card images
+CARD_FOLDER = "cards_small"
 
 values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king', 'ace']
 suits = ['hearts', 'diamonds', 'clubs', 'spades']
 deck = [f"{v}_of_{s}" for v in values for s in suits]
 
+@st.cache_resource
 def load_card_image(card_name):
     path = os.path.join(CARD_FOLDER, f"{card_name}.png")
     return Image.open(path)
@@ -60,7 +61,7 @@ with col1:
     user_cols = st.columns(len(st.session_state.user_cards))
     for i, card in enumerate(st.session_state.user_cards):
         with user_cols[i]:
-            st.image(load_card_image(card), width=120)
+            st.image(load_card_image(card))
 
 # Dealer cards
 with col2:
@@ -71,16 +72,16 @@ with col2:
         dealer_cols = st.columns(len(st.session_state.dealer_cards))
         for i, card in enumerate(st.session_state.dealer_cards):
             with dealer_cols[i]:
-                st.image(load_card_image(card), width=120)
+                st.image(load_card_image(card))
     else:
         st.text("Score: ?")
         dealer_cols = st.columns(len(st.session_state.dealer_cards))
         for i, card in enumerate(st.session_state.dealer_cards):
             with dealer_cols[i]:
                 if i == 0:
-                    st.image(load_card_image(card), width=120)
+                    st.image(load_card_image(card))
                 else:
-                    st.image(load_card_image("back"), width=120)
+                    st.image(load_card_image("back"))
 
 # Action buttons
 col3, col4, col5 = st.columns(3)
