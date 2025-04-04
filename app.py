@@ -36,14 +36,20 @@ def init_game():
     st.session_state.dealer_cards = [random.choice(deck), random.choice(deck)]
     st.session_state.game_over = False
     st.session_state.result = ""
+    st.session_state.action = None
 
-# UI starts here
+# Initial setup
 st.set_page_config(page_title="Blackjack by Shlomi", layout="wide")
 st.title("🃏 Blackjack by Shlomi")
 
+# Session state initialization
 if 'user_cards' not in st.session_state:
     init_game()
 
+if 'action' not in st.session_state:
+    st.session_state.action = None
+
+# Columns for player and dealer
 col1, col2 = st.columns(2)
 
 # Player cards
@@ -76,32 +82,42 @@ with col2:
                 else:
                     st.image(load_card_image("back"), width=120)
 
-# Buttons
+# Action buttons
 col3, col4, col5 = st.columns(3)
 with col3:
     if st.button("Hit") and not st.session_state.game_over:
-        st.session_state.user_cards.append(random.choice(deck))
-        if calculate_score(st.session_state.user_cards) > 21:
-            st.session_state.result = "You BUST!"
-            st.session_state.game_over = True
-
+        st.session_state.action = "hit"
 with col4:
     if st.button("Stand") and not st.session_state.game_over:
-        while calculate_score(st.session_state.dealer_cards) < 17:
-            st.session_state.dealer_cards.append(random.choice(deck))
-        user_score = calculate_score(st.session_state.user_cards)
-        dealer_score = calculate_score(st.session_state.dealer_cards)
-        if dealer_score > 21 or user_score > dealer_score:
-            st.session_state.result = "You win!"
-        elif dealer_score > user_score:
-            st.session_state.result = "Dealer wins!"
-        else:
-            st.session_state.result = "It's a tie!"
-        st.session_state.game_over = True
-
+        st.session_state.action = "stand"
 with col5:
     if st.button("New Game"):
-        init_game()
+        st.session_state.action = "new"
+
+# Perform actions
+if st.session_state.action == "hit":
+    st.session_state.user_cards.append(random.choice(deck))
+    if calculate_score(st.session_state.user_cards) > 21:
+        st.session_state.result = "You BUST!"
+        st.session_state.game_over = True
+    st.session_state.action = None
+
+elif st.session_state.action == "stand":
+    while calculate_score(st.session_state.dealer_cards) < 17:
+        st.session_state.dealer_cards.append(random.choice(deck))
+    user_score = calculate_score(st.session_state.user_cards)
+    dealer_score = calculate_score(st.session_state.dealer_cards)
+    if dealer_score > 21 or user_score > dealer_score:
+        st.session_state.result = "You win!"
+    elif dealer_score > user_score:
+        st.session_state.result = "Dealer wins!"
+    else:
+        st.session_state.result = "It's a tie!"
+    st.session_state.game_over = True
+    st.session_state.action = None
+
+elif st.session_state.action == "new":
+    init_game()
 
 # Result
 if st.session_state.result:
