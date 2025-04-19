@@ -1,6 +1,6 @@
 # 🃏 Lenny BlackJack
 
-![lenny_blackjack](https://github.com/ShlomiShorIII/BlackJack/assets/63bb6f5b-2321-4617-9242-dc658990bbe5)
+![lenny_blackjack](https://github.com/user-attachments/assets/63bb6f5b-2321-4617-9242-dc658990bbe5)
 
 **A stylish Python-based Blackjack game built with Tkinter**, sound effects via `pygame`, and a custom splash screen featuring our fuzzy mascot – **Lenny the Hamster 🐹**.
 
