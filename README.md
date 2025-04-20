@@ -6,7 +6,10 @@
 
 Made with 💚 by **Shlomi Shor III**.
 
+![GitHub Repo stars](https://img.shields.io/github/stars/ShlomiShorIII/BlackJack?style=social)
+
 ![Visitors](https://visitor-badge.glitch.me/badge?page_id=ShlomiShorIII.BlackJack)
+
 ---
 
 ## 🎮 Features
