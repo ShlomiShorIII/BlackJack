@@ -6,6 +6,7 @@
 
 Made with 💚 by **Shlomi Shor III**.
 
+![Visitors](https://visitor-badge.glitch.me/badge?page_id=ShlomiShorIII.BlackJack)
 ---
 
 ## 🎮 Features
