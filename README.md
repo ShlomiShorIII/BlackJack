@@ -7,8 +7,9 @@
 Made with 💚 by **Shlomi Shor III**.
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/ShlomiShorIII/BlackJack?style=social)
-
-![Visitors](https://visitor-badge.glitch.me/badge?page_id=ShlomiShorIII.BlackJack)
+![GitHub forks](https://img.shields.io/github/forks/ShlomiShorIII/BlackJack?style=social)
+![GitHub last commit](https://img.shields.io/github/last-commit/ShlomiShorIII/BlackJack)
+![GitHub language](https://img.shields.io/github/languages/top/ShlomiShorIII/BlackJack)
 
 ---
 
