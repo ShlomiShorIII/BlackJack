@@ -1,325 +1,312 @@
+import os
 import tkinter as tk
 import random
-import os
 import pygame
 import tkinter.font as tkFont
 from PIL import Image, ImageTk
 from ctypes import windll
 
-pygame.mixer.init()
+# ─── Setup working directory ─────────────────────────────────────────────────
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
 
-BG_COLOR = "#1e1e1e"
-TEXT_COLOR = "white"
-BUTTON_COLOR = "#2e2e2e"
-BUTTON_TEXT = "white"
-BUTTON_ACTIVE = "#444444"
-HIGHLIGHT_COLOR = "#FFD700"
+# ─── Initialize audio ─────────────────────────────────────────────────────────
+pygame.mixer.init()
+def load_sound(path):
+    return pygame.mixer.Sound(path) if os.path.exists(path) else None
+
+# ─── Paths & colors ──────────────────────────────────────────────────────────
+BG         = "#1e1e1e"
+FG         = "white"
+BTN_BG     = "#2e2e2e"
+HIGHLIGHT  = "#FFD700"
 LOSS_COLOR = "#ff5555"
-WIN_COLOR = "#55ff55"
+WIN_COLOR  = "#55ff55"
 DRAW_COLOR = "#ffaa00"
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-lenny_path = os.path.join(BASE_DIR, "lenny_blackjack.png")
-CHIPS_FOLDER = os.path.join(BASE_DIR, "chips")
-FONT_PATH = os.path.join(BASE_DIR, "fonts", "LuckiestGuy-Regular.ttf")
-windll.gdi32.AddFontResourceW(FONT_PATH)
+IMG_LOGO   = "lenny_blackjack.png"
+CARDS_DIR  = "cards"
+CHIPS_DIR  = "chips"
+SND_BG     = os.path.join("sounds","backgroundMusic.mp3")
+SND_BTN    = os.path.join("sounds","button.wav")
+SND_CARD   = os.path.join("sounds","card.mp3")
+FONT_FILE  = os.path.join("fonts","LuckiestGuy-Regular.ttf")
 
-music_path = os.path.join(BASE_DIR, "sounds", "backgroundMusic.mp3")
-button_sound_path = os.path.join(BASE_DIR, "sounds", "button.wav")
-card_sound_path = os.path.join(BASE_DIR, "sounds", "card.mp3")
-CARDS_FOLDER = os.path.join(BASE_DIR, "cards")
+# register custom font
+if os.path.exists(FONT_FILE):
+    windll.gdi32.AddFontResourceW(FONT_FILE)
 
-values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king', 'ace']
-suits = ['hearts', 'diamonds', 'clubs', 'spades']
-deck = [f"{v}_of_{s}" for v in values for s in suits]
-current_deck = deck.copy()
-random.shuffle(current_deck)
+click_sound = load_sound(SND_BTN)
+card_sound  = load_sound(SND_CARD)
+if os.path.exists(SND_BG):
+    pygame.mixer.music.load(SND_BG)
+    pygame.mixer.music.set_volume(0.2)
+    pygame.mixer.music.play(-1)
 
-user_cards = []
+# ─── Deck & game state ────────────────────────────────────────────────────────
+values = ['2','3','4','5','6','7','8','9','10','jack','queen','king','ace']
+suits  = ['hearts','diamonds','clubs','spades']
+deck   = [f"{v}_of_{s}" for v in values for s in suits]
+random.shuffle(deck)
+
+user_cards   = []
 dealer_cards = []
-bet_amount = 0
-balance = 150
-wins = 0
-losses = 0
-draws = 0
-total_games = 0
-blackjacks = 0
+bet_amount   = 0
+balance      = 150
+wins = losses = draws = total_games = blackjacks = 0
 
 state = {
-    "can_place_bet": True,
+    "can_bet":    True,
     "bet_locked": False,
-    "round_active": False,
+    "round_on":   False,
     "round_over": False,
-    "game_over": False
+    "game_over":  False
 }
 
+# ─── Main window & fonts ──────────────────────────────────────────────────────
 root = tk.Tk()
 root.title("BlackJack 🂡 | By Shlomi Shor III")
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-root.geometry(f"{screen_width}x{screen_height}")
-root.configure(bg=BG_COLOR)
-root.attributes('-fullscreen', True)
+sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+root.geometry(f"{sw}x{sh}")
+root.configure(bg=BG)
+root.attributes("-fullscreen", True)
 root.bind("<Escape>", lambda e: root.attributes("-fullscreen", False))
 
-pygame.mixer.music.load(music_path)
-pygame.mixer.music.set_volume(0.2)
-pygame.mixer.music.play(-1)
-click_sound = pygame.mixer.Sound(button_sound_path)
-click_sound.set_volume(1)
-card_sound = pygame.mixer.Sound(card_sound_path)
+# dynamic sizing
+CARD_W = int(sw * 0.07)
+CARD_H = int(CARD_W * 1.45)
+CHIP_S = int(sw * 0.1)
+LOGO_W = int(sw * 0.28)
+LOGO_H = int(LOGO_W * 0.6)
+fs     = min(sw/1200, 1.0)
+def mkfont(sz): return tkFont.Font(root=root, family="Luckiest Guy", size=int(sz*fs))
 
-card_width = int(screen_width * 0.07)
-card_height = int(card_width * 1.45)
-chip_size = int(screen_width * 0.06)
-logo_width = int(screen_width * 0.28)
-logo_height = int(logo_width * 0.6)
+font_lg = mkfont(22)
+font_md = mkfont(16)
+font_sm = mkfont(12)
+font_st = mkfont(17)
 
-font_scale = min(screen_width / 1920, 1)
-luckiest_guy_font_lg = tkFont.Font(root=root, family="Luckiest Guy", size=int(22 * font_scale))
-luckiest_guy_font_md = tkFont.Font(root=root, family="Luckiest Guy", size=int(16 * font_scale))
-luckiest_guy_font_sm = tkFont.Font(root=root, family="Luckiest Guy", size=int(12 * font_scale))
+# ─── Scrollable canvas ────────────────────────────────────────────────────────
+canvas = tk.Canvas(root, bg=BG, highlightthickness=0)
+vsb    = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+scroll_frame = tk.Frame(canvas, bg=BG)
+scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+canvas.create_window((0,0), window=scroll_frame, anchor="nw")
+canvas.configure(yscrollcommand=vsb.set)
+canvas.pack(side="left", fill="both", expand=True)
+vsb.pack(side="right", fill="y")
 
-credits_frame = tk.Frame(root, bg=BG_COLOR)
-credits_frame.pack(anchor="nw", padx=10, pady=2)
+def on_wheel(e):
+    canvas.yview_scroll(int(-1*(e.delta/120)), "units")
+canvas.bind_all("<MouseWheel>", on_wheel)
 
-copyright_label = tk.Label(credits_frame, text="© 2025 Shlomi Shor III – All rights reserved", font=luckiest_guy_font_sm, fg="#9ed4d4",bg=BG_COLOR)
-copyright_label.pack(anchor="w")
+# ─── Header layout: grid with 3 columns ───────────────────────────────────────
+scroll_frame.columnconfigure(1, weight=1)
 
-music_copyright_label = tk.Label(credits_frame, text="🎵 Music: Aventure by Bensound.com (free use with attribution)", font=luckiest_guy_font_sm, fg="#b6e2d3",bg=BG_COLOR)
-music_copyright_label.pack(anchor="w")
+# Stats (col 0)
+stats_frame = tk.Frame(scroll_frame, bg=BG)
+stats_frame.grid(row=0, column=0, sticky="nw", padx=20, pady=10)
+def update_stats():
+    for w in stats_frame.winfo_children(): w.destroy()
+    sr = round((wins/total_games)*100) if total_games else 0
+    rows = [
+        (f"Games Played : {total_games}", FG),
+        (f"Wins          : {wins}",        FG),
+        (f"Losses        : {losses}",      FG),
+        (f"Draws         : {draws}",       FG),
+        (f"Blackjacks    : {blackjacks}",  "#9ed4d4"),
+        (f"Success Rate  : {sr}%",         "#3ba1a1"),
+    ]
+    for txt, col in rows:
+        tk.Label(stats_frame, text=txt, font=font_st, fg=col, bg=BG).pack(anchor="w")
 
-header_frame = tk.Frame(root, bg=BG_COLOR)
-header_frame.pack(pady=int(screen_height * 0.01))
+# Logo (col 1)
+logo_frame = tk.Frame(scroll_frame, bg=BG)
+logo_frame.grid(row=0, column=1, sticky="n", pady=10)
+logo_img = Image.open(IMG_LOGO).resize((LOGO_W, LOGO_H))
+logo_ph  = ImageTk.PhotoImage(logo_img)
+tk.Label(logo_frame, image=logo_ph, bg=BG).pack()
 
-stats_font = tkFont.Font(root=root, family="Luckiest Guy", size=int(17 * font_scale))
-stats_frame = tk.Frame(root, bg=BG_COLOR)
-stats_label = tk.Label(stats_frame, text="", font=luckiest_guy_font_md, bg=BG_COLOR, fg=TEXT_COLOR, justify="left")
-stats_label.pack()
+# Chips (col 2)
+chips_frame = tk.Frame(scroll_frame, bg=BG)
+chips_frame.grid(row=0, column=2, sticky="ne", padx=20, pady=10)
+tk.Label(chips_frame, text="PLACE YOUR BET:", font=font_md, fg=HIGHLIGHT, bg=BG).pack(pady=5)
+chip_buttons = {}
+for amt in [1,5,10,25,50]:
+    chip_img = Image.open(os.path.join(CHIPS_DIR, f"{amt}$.png")).resize((CHIP_S, CHIP_S))
+    chip_ph  = ImageTk.PhotoImage(chip_img)
+    btn = tk.Button(chips_frame, image=chip_ph, bd=0, bg=BG)
+    btn.image = chip_ph
+    btn.pack(pady=5)
+    chip_buttons[amt] = btn
 
-lenny_img = Image.open(lenny_path).resize((logo_width, logo_height))
-lenny_photo = ImageTk.PhotoImage(lenny_img)
-lenny_label = tk.Label(header_frame, image=lenny_photo, bg=BG_COLOR)
-lenny_label.pack(pady=int(screen_height * 0.01))
+# ─── Game area (row 1, colspan 3) ────────────────────────────────────────────
+game_frame = tk.Frame(scroll_frame, bg=BG)
+game_frame.grid(row=1, column=0, columnspan=3, pady=20)
 
-root.update() 
-stats_frame.place(x=lenny_label.winfo_x() + logo_width - 100, y=lenny_label.winfo_y() + 50)
+tk.Label(game_frame, text="YOUR CARDS:", font=font_md, fg=FG, bg=BG).pack()
+player_cards_frame = tk.Frame(game_frame, bg=BG); player_cards_frame.pack(pady=5)
 
-reset_button = tk.Button(root, text="Reset Game", command=lambda: reset_game(), bg=WIN_COLOR, fg="black", font=luckiest_guy_font_md)
+tk.Label(game_frame, text="DEALER'S CARDS:", font=font_md, fg=FG, bg=BG).pack(pady=(20,0))
+dealer_cards_frame = tk.Frame(game_frame, bg=BG); dealer_cards_frame.pack(pady=5)
 
-chip_buttons = {} 
+buttons_frame = tk.Frame(game_frame, bg=BG); buttons_frame.pack(pady=15)
+btn_hit     = tk.Button(buttons_frame, text="Hit",                bg=BTN_BG, fg=FG, font=font_sm)
+btn_stand   = tk.Button(buttons_frame, text="Stand",              bg=BTN_BG, fg=FG, font=font_sm)
+btn_shuffle = tk.Button(buttons_frame, text="Shuffle New Cards",  bg=BTN_BG, fg=FG, font=font_sm)
+for w in (btn_hit, btn_stand, btn_shuffle):
+    w.pack(side="left", padx=10)
+
+# Score / result / reset / mute (rows 2–5)
+score_label  = tk.Label(scroll_frame, text="", font=font_sm, fg=FG, bg=BG)
+score_label.grid(row=2, column=0, columnspan=3, pady=10)
+result_label = tk.Label(scroll_frame, text="", font=font_lg, fg=HIGHLIGHT, bg=BG)
+result_label.grid(row=3, column=0, columnspan=3)
+
+btn_reset = tk.Button(scroll_frame, text="Reset Game", bg=WIN_COLOR, fg="black", font=font_md)
+btn_reset.grid(row=4, column=0, columnspan=3, pady=10)
+btn_mute  = tk.Button(scroll_frame, text="🔈 Mute/Unmute",
+    command=lambda: pygame.mixer.music.pause() if pygame.mixer.music.get_busy() else pygame.mixer.music.unpause(),
+    bg=BTN_BG, fg=FG, font=font_sm)
+btn_mute.grid(row=5, column=0, columnspan=3, pady=5)
+
+# ─── Helpers & game logic ─────────────────────────────────────────────────────
+def calculate_score(cards):
+    total, aces = 0, 0
+    for c in cards:
+        v = c.split("_")[0]
+        if v in ['jack','queen','king']:
+            total += 10
+        elif v == 'ace':
+            total += 11
+            aces  += 1
+        else:
+            total += int(v)
+    while total > 21 and aces:
+        total -= 10
+        aces  -= 1
+    return total
+
+def load_card_image(name):
+    path = os.path.join(CARDS_DIR, f"{name}.png")
+    return ImageTk.PhotoImage(Image.open(path).resize((CARD_W, CARD_H)))
+
+def play_click_then(fn):
+    def wrapped():
+        if click_sound: click_sound.play()
+        fn()
+    return wrapped
 
 def update_chip_buttons():
-    for amount, button in chip_buttons.items():
-        if balance >= amount:
-            button.config(state="normal")
-        else:
-            button.config(state="disabled")
-
-def reset_game():
-    global balance, wins, losses, draws, blackjacks, total_games
-    balance = 150
-    wins = losses = draws = blackjacks = total_games = 0
-    state["game_over"] = False
-    reset_button.pack_forget()
-    deal_initial_cards()
-
-def check_game_over():
-    if balance < 1:
-        state["game_over"] = True
-        result_label.config(text="You're out of money! Press Reset to start again.", fg=LOSS_COLOR)
-        disable_action_buttons()
-        reset_button.pack(pady=10)
-
-def update_stats():
-    for widget in stats_frame.winfo_children():
-        widget.destroy()
-    def make_label(text, color=TEXT_COLOR, font=stats_font):
-        lbl = tk.Label(stats_frame, text=text, font=font, bg=BG_COLOR, fg=color, anchor="w", justify="left")
-        lbl.pack(anchor="w")
-    success_rate = round((wins / total_games) * 100) if total_games > 0 else 0
-    make_label(f"Games Played : {total_games}")
-    make_label(f"Wins         : {wins}")
-    make_label(f"Losses       : {losses}")
-    make_label(f"Draws        : {draws}")
-    make_label(f"Blackjacks : {blackjacks}", "#9ed4d4") 
-    make_label(f"Success Rate : {success_rate}%", "#3ba1a1")
-
-def disable_action_buttons():
-    hit_button.config(state="disabled")
-    stand_button.config(state="disabled")
-
-def enable_action_buttons():
-    hit_button.config(state="normal")
-    stand_button.config(state="normal")
+    for amt, btn in chip_buttons.items():
+        btn.config(state='normal' if balance >= amt else 'disabled')
 
 def update_display():
-    for widget in user_cards_frame.winfo_children(): widget.destroy()
-    for widget in dealer_cards_frame.winfo_children(): widget.destroy()
-    for card in user_cards:
-        img = load_card_image(card)
-        lbl = tk.Label(user_cards_frame, image=img, bg=BG_COLOR)
+    # clear frames
+    for w in player_cards_frame.winfo_children(): w.destroy()
+    for w in dealer_cards_frame.winfo_children(): w.destroy()
+    # draw player cards
+    for c in user_cards:
+        img = load_card_image(c)
+        lbl = tk.Label(player_cards_frame, image=img, bg=BG)
         lbl.image = img
         lbl.pack(side="left", padx=5)
-    for i, card in enumerate(dealer_cards):
-        show_card = card if state["round_over"] else ("back" if i == 1 else card)
-        img = load_card_image(show_card)
-        lbl = tk.Label(dealer_cards_frame, image=img, bg=BG_COLOR)
+    # draw dealer cards
+    for i, c in enumerate(dealer_cards):
+        show = c if state["round_over"] or i == 0 else "back"
+        img  = load_card_image(show)
+        lbl  = tk.Label(dealer_cards_frame, image=img, bg=BG)
         lbl.image = img
         lbl.pack(side="left", padx=5)
-    user_score = calculate_score(user_cards)
-    dealer_score = calculate_score(dealer_cards) if state["round_over"] else "?"
-    score_label.config(text=f"🎯 Your Score: {user_score} | Dealer: {dealer_score} | 💰 ${balance}", font=luckiest_guy_font_md)
+    # update score & stats
+    us = calculate_score(user_cards)
+    ds = calculate_score(dealer_cards) if state["round_over"] else "?"
+    score_label.config(text=f"🎯 Your Score: {us} | Dealer: {ds} | 💰 ${balance}")
     update_stats()
     update_chip_buttons()
 
-def load_card_image(card_name):
-    path = os.path.join(CARDS_FOLDER, f"{card_name}.png")
-    img = Image.open(path).resize((card_width, card_height))
-    return ImageTk.PhotoImage(img)
-
-def load_chip_image(filename, size=(250, 250)):
-    path = os.path.join(CHIPS_FOLDER, filename)
-    img = Image.open(path).resize(size)
-    return ImageTk.PhotoImage(img)
-
-def calculate_score(cards):
-    score = 0
-    aces = 0
-    for card in cards:
-        val = card.split("_")[0]
-        if val in ['jack', 'queen', 'king']: score += 10
-        elif val == 'ace': score += 11; aces += 1
-        else: score += int(val)
-    while score > 21 and aces: score -= 10; aces -= 1
-    return score
-
 def deal_initial_cards():
     global user_cards, dealer_cards
-    if state["round_active"]: 
-        result_label.config(text="You must finish the current round first!", fg=LOSS_COLOR)
+    if state["round_on"]:
+        result_label.config(text="Finish current round first!", fg=LOSS_COLOR)
         return
-    if len(current_deck) < 10:
-        current_deck.clear()
-        current_deck.extend(deck)
-        random.shuffle(current_deck)
-    user_cards.clear()
-    dealer_cards.clear()
-    user_cards.extend([current_deck.pop(), current_deck.pop()])
-    dealer_cards.extend([current_deck.pop(), current_deck.pop()])
-    state["can_place_bet"] = True
-    state["bet_locked"] = False
-    state["round_active"] = False
-    state["round_over"] = False
-    result_label.config(text="Place your bet to continue", fg=HIGHLIGHT_COLOR)
-    disable_action_buttons()
+    if len(deck) < 10:
+        deck[:] = [f"{v}_of_{s}" for v in values for s in suits]
+        random.shuffle(deck)
+    user_cards   = [deck.pop(), deck.pop()]
+    dealer_cards = [deck.pop(), deck.pop()]
+    state.update({"can_bet":True, "bet_locked":False, "round_on":False, "round_over":False})
+    result_label.config(text="Place your bet to continue", fg=HIGHLIGHT)
     update_display()
+
+def reset_game():
+    global balance, wins, losses, draws, total_games, blackjacks
+    balance = 150
+    wins = losses = draws = total_games = blackjacks = 0
+    deal_initial_cards()
+
+def hit():
+    if not state["round_on"]:
+        return
+    user_cards.append(deck.pop())
+    if card_sound: card_sound.play()
+    if calculate_score(user_cards) > 21:
+        end_round(False)
+    update_display()
+
+def stand():
+    if not state["round_on"]:
+        return
+    while calculate_score(dealer_cards) < 17:
+        dealer_cards.append(deck.pop())
+    if calculate_score(user_cards) == 21 and len(user_cards) == 2:
+        global blackjacks
+        blackjacks += 1
+    u, d = calculate_score(user_cards), calculate_score(dealer_cards)
+    if d > 21 or u > d:
+        end_round(True)
+    elif d > u:
+        end_round(False)
+    else:
+        end_round(None)
+    update_display()
+
+def end_round(won):
+    global wins, losses, draws, total_games, balance
+    state.update({"round_on":False, "round_over":True})
+    if won is True:
+        wins += 1; balance += bet_amount; result_label.config(text="You Win!", fg=WIN_COLOR)
+    elif won is False:
+        losses += 1; balance -= bet_amount; result_label.config(text="Dealer Wins!", fg=LOSS_COLOR)
+    else:
+        draws += 1; result_label.config(text="Draw!", fg=DRAW_COLOR)
+    total_games += 1
+    if balance < 1:
+        state["game_over"] = True
+        result_label.config(text="You're out of money! Press Reset", fg=LOSS_COLOR)
+    update_stats()
+    update_chip_buttons()
 
 def place_bet(amount):
     global bet_amount
-    if not state["can_place_bet"] or state["bet_locked"]:
-        result_label.config(text="Can't place bet now!", fg=LOSS_COLOR)
+    if not state["can_bet"] or state["bet_locked"]:
+        result_label.config(text="Can't bet now!", fg=LOSS_COLOR)
         return
     if balance < amount:
-        result_label.config(text="Not enough balance to place this bet!", fg=LOSS_COLOR)
+        result_label.config(text="Not enough funds!", fg=LOSS_COLOR)
         return
     bet_amount = amount
-    state["can_place_bet"] = False
-    state["bet_locked"] = True
-    state["round_active"] = True
-    enable_action_buttons()
-    result_label.config(text=f"Bet Placed: ${bet_amount}. Good luck!", fg="#effff3")
+    state.update({"can_bet":False, "bet_locked":True, "round_on":True})
+    result_label.config(text=f"Bet Placed: ${bet_amount}", fg=FG)
     update_display()
 
-def hit():
-    if not state["round_active"]: return
-    user_cards.append(current_deck.pop())
-    card_sound.play()
-    update_display()
-    if calculate_score(user_cards) > 21:
-        end_round(False)
-
-def stand():
-    if not state["round_active"]: return
-    while calculate_score(dealer_cards) < 17:
-        dealer_cards.append(current_deck.pop())
-    user = calculate_score(user_cards)
-    dealer = calculate_score(dealer_cards)
-    if user == 21 and len(user_cards) == 2:
-        global blackjacks
-        blackjacks += 1
-    if dealer > 21 or user > dealer: end_round(True)
-    elif dealer > user: end_round(False)
-    else: end_round(None)
-
-def end_round(won):
-    global wins, losses, draws, total_games, balance, bet_amount
-    state["round_active"] = False
-    state["round_over"] = True
-    state["can_place_bet"] = False
-    state["bet_locked"] = False
-    disable_action_buttons()
-    total_games += 1
-    if won is True:
-        wins += 1; balance += bet_amount
-        result_label.config(text="You Win!", fg=WIN_COLOR)
-    elif won is False:
-        losses += 1; balance -= bet_amount
-        result_label.config(text="Dealer Wins!", fg=LOSS_COLOR)
-    else:
-        draws += 1
-        result_label.config(text="Draw!", fg=DRAW_COLOR)
-    check_game_over()
-    update_display()
-    bet_amount = 0
-
-def play_click_then(func):
-    def wrapper():
-        click_sound.play()
-        func()
-    return wrapper
-
-def toggle_music():
-    if pygame.mixer.music.get_busy(): pygame.mixer.music.pause()
-    else: pygame.mixer.music.unpause()
-
-tk.Label(root, text="Your Cards:", font=luckiest_guy_font_md, bg=BG_COLOR, fg=TEXT_COLOR).pack()
-user_cards_frame = tk.Frame(root, bg=BG_COLOR)
-user_cards_frame.pack(pady=5)
-tk.Label(root, text="Dealer's Cards:", font=luckiest_guy_font_md, bg=BG_COLOR, fg=TEXT_COLOR).pack()
-dealer_cards_frame = tk.Frame(root, bg=BG_COLOR)
-dealer_cards_frame.pack(pady=5)
-
-button_frame = tk.Frame(root, bg=BG_COLOR)
-button_frame.pack(pady=20)
-hit_button = tk.Button(button_frame, text="Hit", command=play_click_then(hit), bg=BUTTON_COLOR, fg=BUTTON_TEXT, font=luckiest_guy_font_sm)
-hit_button.pack(side="left", padx=10)
-stand_button = tk.Button(button_frame, text="Stand", command=play_click_then(stand), bg=BUTTON_COLOR, fg=BUTTON_TEXT, font=luckiest_guy_font_sm)
-stand_button.pack(side="left", padx=10)
-deal_button = tk.Button(button_frame, text="Shuffle New Cards", command=play_click_then(deal_initial_cards), bg=BUTTON_COLOR, fg=BUTTON_TEXT, font=luckiest_guy_font_sm)
-deal_button.pack(side="left", padx=10)
-
-score_label = tk.Label(root, text="", font=luckiest_guy_font_sm, bg=BG_COLOR, fg=TEXT_COLOR)
-score_label.pack(pady=10)
-result_label = tk.Label(root, text="", font=luckiest_guy_font_lg, bg=BG_COLOR, fg=HIGHLIGHT_COLOR)
-result_label.pack(pady=10)
-
-side_frame = tk.Frame(root, bg=BG_COLOR)
-side_frame.place(relx=0.95, rely=0.5, anchor="e")
-tk.Label(side_frame, text="Place Your Bet:", font=luckiest_guy_font_md, bg=BG_COLOR, fg=HIGHLIGHT_COLOR).pack(pady=5)
-chip_images = {
-    1: load_chip_image("1$.png", size=(250, 250)),
-    5: load_chip_image("5$.png", size=(250, 250)),
-    10: load_chip_image("10$.png", size=(250, 250)),
-    25: load_chip_image("25$.png", size=(250, 250)),
-    50: load_chip_image("50$.png", size=(250, 250))
-}
-
-for amount in [1, 5, 10, 25, 50]:
-    btn = tk.Button(side_frame, image=chip_images[amount], command=lambda a=amount: place_bet(a), bd=0, bg=BG_COLOR)
-    btn.pack(pady=3)
-    chip_buttons[amount] = btn
+# ─── Wire up controls & start ─────────────────────────────────────────────────
+btn_hit.config(   command=play_click_then(hit))
+btn_stand.config( command=play_click_then(stand))
+btn_shuffle.config(command=play_click_then(deal_initial_cards))
+btn_reset.config( command=play_click_then(reset_game))
+for amt, btn in chip_buttons.items():
+    btn.config(command=play_click_then(lambda a=amt: place_bet(a)))
 
 deal_initial_cards()
-tk.Button(root, text="🔈 Mute / Unmute", command=toggle_music, bg=BUTTON_COLOR, fg=BUTTON_TEXT, font=luckiest_guy_font_sm).pack(pady=5)
 root.mainloop()
