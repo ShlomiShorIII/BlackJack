@@ -13,6 +13,9 @@ Made with 💚 by **Shlomi Shor III**.
 
 ---
 
+https://github.com/user-attachments/assets/6e237f63-b01d-4db4-8444-748ee189bccb
+
+---
 ## 🎮 Features
 
 - 🎴 Interactive Blackjack game with full GUI
